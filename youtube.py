@@ -60,4 +60,4 @@ def set_vlc_volume(volume_level):
         # Volume level should be between 0 (mute) and 100 (max)
         volume_level = max(0, min(100, volume_level))
         player.audio_set_volume(volume_level)
-        print(f"VLC volume set to {volume_level}%")
+        print(f"VLC volume set to {volume_level}%")  
