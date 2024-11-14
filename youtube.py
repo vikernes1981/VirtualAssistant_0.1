@@ -6,20 +6,8 @@ import webbrowser
 from speech import recognize_speech, speak  # Assuming you have these functions for user input and responses
 import urllib.parse  # For URL encoding user input
 
-
 player = None  # Global VLC player instance
 music_paused = False  # Global flag to track pause state
-
-
-import os
-from yt_dlp import YoutubeDL
-import vlc
-import time
-import webbrowser
-from speech import recognize_speech, speak  # Assuming you have these functions for user input and responses
-import urllib.parse  # For URL encoding user input
-
-player = None  # Global VLC player instance
 
 def stop_current_music():
     """Stop the currently playing music if there is any."""
@@ -42,11 +30,11 @@ def play_youtube_music():
     # Determine which URL to use based on user choice
     if user_choice:
         user_choice = user_choice.lower()
-        if "relax" in user_choice:
+        if "relax" in user_choice or "χαλαρώσω" in user_choice:  # Check for English ("relax") and Greek ("χαλαρώσω")
             print("Playing Lofi music.")
             video_url = "https://www.youtube.com/watch?v=sF80I-TQiW0"  # Lofi URL
             filename = "lofi_audio.m4a"  # Specify a name for the Lofi file
-        elif "warcraft" in user_choice:
+        elif "warcraft" in user_choice or "γουόρκραφτ" in user_choice:  # Check for English ("warcraft") and Greek ("γουόρκραφτ")
             print("Playing Warcraft music.")
             video_url = "https://www.youtube.com/watch?v=ebmwJnhtMgY"  # Warcraft URL
             filename = "warcraft_audio.m4a"  # Specify a name for the Warcraft file

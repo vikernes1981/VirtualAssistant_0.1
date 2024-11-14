@@ -6,7 +6,7 @@ from langdetect import detect
 
 def speak(text_en, text_gr=None):
     # Generate speech
-    lang = 'el' if current_language == 'gr' else 'en'  # Switch language based on current setting
+    lang = 'el' if current_language == 'el-Gr' else 'en-US'  # Switch language based on current setting
     tts = gTTS(text=text_gr if current_language == 'gr' else text_en, lang=lang)
     tts.save("response.mp3")
     os.system("mpg123 response.mp3")  # Play the generated speech
@@ -17,17 +17,17 @@ def recognize_speech():
     with sr.Microphone() as source:
         print("Listening for your input...")
         try:
+            lang = "el-GR" if current_language == 'gr' else "en-US"  # Set recognition language
             audio = recognizer.listen(source)
-            lang = "el-GR" if current_language == 'gr' else "en-US"
-            text = recognizer.recognize_google(audio, language=lang)  
+            text = recognizer.recognize_google(audio, language=lang)  # Recognize with specified language
             print(f"You said: {text}")
-            
-            # Detect the language of the recognized text
+
+            # Detect the language of the recognized text and adjust `current_language`
             detected_language = detect(text)
             if detected_language == 'el':
-                current_language = 'gr'  # Switch to Greek if detected language is Greek
+                current_language = 'gr'  # Set to Greek if Greek is detected
             else:
-                current_language = 'en'  # Switch to English if detected language is not Greek
+                current_language = 'en'  # Set to English if English is detected
 
             return text.lower()  # Convert text to lowercase for easier command matching
         except sr.UnknownValueError:
