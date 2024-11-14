@@ -2,13 +2,15 @@ import os
 import speech_recognition as sr
 from gtts import gTTS
 from globals import current_language, recognizer  # Import global variables
-from langdetect import detect, DetectorFactory  # Importing language detection library
+from langdetect import detect
 
 def speak(text_en, text_gr=None):
+    # Generate speech
     lang = 'el' if current_language == 'gr' else 'en'  # Switch language based on current setting
     tts = gTTS(text=text_gr if current_language == 'gr' else text_en, lang=lang)
     tts.save("response.mp3")
-    os.system("mpg123 response.mp3")
+    os.system("mpg123 response.mp3")  # Play the generated speech
+    # Resume music after speaking
 
 def recognize_speech():
     global current_language  # Use the global variable to update the language setting

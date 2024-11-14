@@ -1,9 +1,12 @@
 import os
 from gtts import gTTS
-from speech import speak  # Assuming you have a `speak` function for text-to-speech
+from speech import speak
 from ebooklib import epub
 from bs4 import BeautifulSoup
 import PyPDF2
+
+
+# Need more work to read epub files
 
 def read_pdf(file_path):
     try:
