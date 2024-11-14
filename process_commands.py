@@ -158,7 +158,7 @@ def process_command(command):
         stop_music_vlc()
 
     elif intent == "repeat":
-        speak("I didn't understand that. Can you please repeat?", "Δεν κατάλαβα τι είπες. Μπορείς να το επαναλάβεις;")
+        speak(command, command)  # Repeat the command spoken by the user
         pause_music_vlc()
 
     elif intent == "help":
