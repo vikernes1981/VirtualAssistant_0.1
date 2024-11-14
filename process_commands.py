@@ -164,6 +164,33 @@ def process_command(command):
     elif intent == "help":
         speak("I can help you with tasks like telling the weather, setting reminders, telling jokes, and more.", "Μπορώ να σε βοηθήσω με καθήκοντα όπως να λέω τον καιρό, να βάζω υπενθυμίσεις, να λέω ανέκδοτα και άλλα.")
         pause_music_vlc()
+    elif intent == "music_volume":
+    # Extract the number from the entities or from the command itself
+        try:
+            # Assuming 'number' is an extracted entity from the user's command
+            # If using entities extraction:
+            number_entity = entities.get('PERCENT')
+            
+            if number_entity and len(number_entity) > 0:
+                # Extract and clean up the number (remove % if present)
+                number = int(number_entity[0].strip().replace("%", ""))
+            else:
+                # Fallback: Extract number directly from the command (e.g., "music volume 30%")
+                import re
+                match = re.search(r'(\d+)', command)
+                if match:
+                    number = int(match.group(1))
+                else:
+                    raise ValueError("No volume level specified.")
+
+            # Clamp the volume level between 0 and 100
+            volume_level = max(0, min(100, number))
+            set_vlc_volume(volume_level)
+            speak(f"Music volume set to {volume_level}%.", f"Η ένταση μουσικής ορίστηκε στο {volume_level}%.")
+            pause_music_vlc()
+        except (ValueError, TypeError) as e:
+            speak("I couldn't understand the volume level. Please specify a number.", "Δεν κατάλαβα την ένταση. Παρακαλώ καθορίστε έναν αριθμό.")
+            pause_music_vlc()
 
     else:
         speak("I'm not sure how to respond to that. Please try again with different words.", "Δεν είμαι σίγουρος πώς να απαντήσω σε αυτό. Δοκίμασε ξανά με διαφορετικές λέξεις.")

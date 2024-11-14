@@ -24,6 +24,6 @@ def listen_for_wake_word(model_path):
         pcm = np.frombuffer(pcm, dtype=np.int16)
         result = porcupine.process(pcm)
         if result >= 0:
-            print("Wake word detected!")
             pause_music_vlc()
+            print("Wake word detected!")
             return  # Exit the loop to trigger the assistant's main functionality
