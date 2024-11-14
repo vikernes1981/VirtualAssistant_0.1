@@ -3,3 +3,9 @@ venv
 output.mp3
 response.mp3
 audio.webm
+intent_model
+book.txt
+jarvis_linux.ppn
+pyautogui
+time
+
