@@ -28,6 +28,19 @@ def create_feedback_table():
     conn.commit()
     conn.close()
 
+
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+
 def insert_dictated_text(text, language):
     try:
         conn = sqlite3.connect(DATABASE_NAME)
@@ -41,4 +54,37 @@ def insert_dictated_text(text, language):
         return True
     except Exception as e:
         print(f"Error saving text to database: {e}")
+        return False
+
+# Add these functions to your `database.py` file
+def insert_note(content):
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO notes (content) VALUES (?)', (content,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error inserting note: {e}")
+        return False
+
+def get_all_notes():
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, content FROM notes')
+    notes = cursor.fetchall()
+    conn.close()
+    return notes
+
+def delete_note_by_id(note_id):
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM notes WHERE id = ?', (note_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error deleting note: {e}")
         return False
