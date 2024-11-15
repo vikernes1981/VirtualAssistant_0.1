@@ -10,6 +10,7 @@ from weather import get_weather
 from news import get_news
 from dictate import real_time_dictation
 from youtube import play_youtube_music, stop_music_vlc, pause_music_vlc, set_vlc_volume  # Import the play_youtube_music function
+from handle_notes import handle_notes
 
 def process_command(command):
     global current_language  # Use global variables for language
@@ -139,10 +140,8 @@ def process_command(command):
         pause_music_vlc()
 
     elif intent == "set_reminder":
-        speak("What would you like me to remind you about?", "Τι θα ήθελες να σε υπενθυμίσω;")
-        task = recognize_speech()
-        if task:
-            speak(f"I'll remind you to {task}.", f"Θα σε υπενθυμίσω να {task}.")
+        speak("You can add a reminder as a note. Let's manage your notes.", "Μπορείς να προσθέσεις μια υπενθύμιση ως σημείωση. Ας διαχειριστούμε τις σημειώσεις σου.")
+        handle_notes()
         pause_music_vlc()
 
     elif intent == "tell_story":
