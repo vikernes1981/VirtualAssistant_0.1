@@ -6,8 +6,8 @@ from langdetect import detect
 
 def speak(text_en, text_gr=None):
     # Generate speech
-    lang = 'el' if current_language == 'el-Gr' else 'en-US'  # Switch language based on current setting
-    tts = gTTS(text=text_gr if current_language == 'gr' else text_en, lang=lang)
+    lang = 'el' if current_language == 'el' else 'en'  # Switch language based on current setting
+    tts = gTTS(text=text_gr if current_language == 'el' else text_en, lang=lang)
     tts.save("response.mp3")
     os.system("mpg123 response.mp3")  # Play the generated speech
     # Resume music after speaking
@@ -17,15 +17,14 @@ def recognize_speech():
     with sr.Microphone() as source:
         print("Listening for your input...")
         try:
-            lang = "el-GR" if current_language == 'gr' else "en-US"  # Set recognition language
-            audio = recognizer.listen(source)
-            text = recognizer.recognize_google(audio, language=lang)  # Recognize with specified language
+            audio = recognizer.listen(source, timeout=40, phrase_time_limit=60)
+            text = recognizer.recognize_google(audio, language="el-GR").lower()
             print(f"You said: {text}")
 
             # Detect the language of the recognized text and adjust `current_language`
             detected_language = detect(text)
             if detected_language == 'el':
-                current_language = 'gr'  # Set to Greek if Greek is detected
+                current_language = 'el'  # Set to Greek if Greek is detected
             else:
                 current_language = 'en'  # Set to English if English is detected
 
