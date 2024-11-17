@@ -11,6 +11,7 @@ from news import get_news
 from dictate import real_time_dictation
 from youtube import play_youtube_music, stop_music_vlc, pause_music_vlc, set_vlc_volume  # Import the play_youtube_music function
 from handle_notes import handle_notes
+from globals import current_language
 
 def process_command(command):
     global current_language  # Use global variables for language
@@ -26,12 +27,12 @@ def process_command(command):
         return  # Exit after handling feedback
 
     # Language switch command
-    if intent == "switch_language":
-        current_language = 'gr' if current_language == 'en' else 'en'  # Toggle between Greek and English
-        response = "Μπορείς να μου μιλάς Ελληνικά τώρα." if current_language == 'gr' else "You can now talk to me in English."
-        speak(response, response)  # Adjusted for dual-language response
-        pause_music_vlc()
-        return
+    # if intent == "switch_language":
+    #     #current_language = 'el' if current_language == 'en' else 'en'  # Toggle between Greek and English
+    #     response = "Μπορείς να μου μιλάς Ελληνικά τώρα." if current_language == 'el' else "You can now talk to me in English."
+    #     speak(response, response)  # Adjusted for dual-language response
+    #     pause_music_vlc()
+    #     return
 
     if intent == "close_tab":
         close_firefox_tab()  # Close the current tab using pyautogui
