@@ -12,6 +12,7 @@ from dictate import real_time_dictation
 from youtube import play_youtube_music, stop_music_vlc, pause_music_vlc, set_vlc_volume  # Import the play_youtube_music function
 from handle_notes import handle_notes
 from globals import current_language
+from readBook import select_and_play_audiobook
 
 def process_command(command):
     global current_language  # Use global variables for language
@@ -146,9 +147,9 @@ def process_command(command):
         pause_music_vlc()
 
     elif intent == "tell_story":
-        story = "Once upon a time in a faraway land, there lived a wise old owl..."
-        speak(story, "Μια φορά και έναν καιρό σε μια μακρινή χώρα, ζούσε μια σοφή κουκουβάγια...")
+        select_and_play_audiobook()
         pause_music_vlc()
+
 
     elif intent == "play_music":
         speak("Playing some music now.", "Παίζω μουσική τώρα.")
