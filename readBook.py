@@ -1,68 +1,112 @@
 import os
-from gtts import gTTS
-from speech import speak
-from ebooklib import epub
-from bs4 import BeautifulSoup
-import PyPDF2
+import requests
+import vlc
+import yt_dlp
+import time
+from youtubesearchpython import VideosSearch
+from speech import speak  # Assuming this is your TTS function
 
+API_URL = "https://techodyssey.org/audiobooks"
 
-# Need more work to read epub files
-
-def read_pdf(file_path):
+def fetch_audiobooks_from_api():
     try:
-        with open(file_path, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
-            num_pages = len(reader.pages)
-            for i in range(num_pages):
-                page = reader.pages[i]
-                text = page.extract_text()
-                if text:
-                    speak(text)  # Call your speak function to read the text
-                    input("Press Enter to continue to the next page...")
-        print("Finished reading the PDF.")
-    except FileNotFoundError:
-        speak("The specified PDF file was not found.", "Το αρχείο PDF δεν βρέθηκε.")
-        print("Error: File not found.")
+        response = requests.get(API_URL)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            speak("Error fetching audiobooks from the API.", "Σφάλμα κατά την ανάκτηση ακουστικών βιβλίων από την API.")
+            print(f"Error: Received status code {response.status_code}")
+            return []
     except Exception as e:
-        speak("There was an error while reading the PDF.", "Υπήρξε σφάλμα κατά την ανάγνωση του PDF.")
+        speak("An error occurred while fetching audiobooks from the API.", "Προέκυψε σφάλμα κατά την ανάκτηση ακουστικών βιβλίων από την API.")
         print(f"Error: {e}")
+        return []
 
-def read_text(file_path, language='en'):
+def list_audiobooks(audiobooks):
+    if not audiobooks:
+        speak("No audiobooks are available at the moment.", "Δεν υπάρχουν διαθέσιμα ακουστικά βιβλία αυτήν τη στιγμή.")
+        print("No audiobooks found.")
+        return None
+    speak("Here are the available audiobooks.", "Ακολουθούν τα διαθέσιμα ακουστικά βιβλία.")
+    print("Available Audiobooks:")
+    for idx, book in enumerate(audiobooks):
+        print(f"{idx + 1}. {book['title']} by {book['author']}")
+    return audiobooks
+
+def select_audiobook(audiobooks):
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
+        choice = int(input("Select a book by entering its number: ")) - 1
+        if 0 <= choice < len(audiobooks):
+            return audiobooks[choice]
+        else:
+            speak("Invalid choice. Please select a valid number.", "Μη έγκυρη επιλογή. Παρακαλώ επιλέξτε έναν έγκυρο αριθμό.")
+            print("Invalid choice.")
+            return None
+    except ValueError:
+        speak("Please enter a valid number.", "Παρακαλώ εισάγετε έναν έγκυρο αριθμό.")
+        print("Invalid input.")
+        return None
 
-        # Prepare text by removing or replacing newlines
-        prepared_text = prepare_text_for_reading(content)
+def play_audio(url):
+    try:
+        temp_file = 'temp_audio.mp3'  # Set expected output file
 
-        # Split content into manageable chunks for reading (e.g., by paragraphs or sentences)
-        chunks = prepared_text.split('.  ')  # Splitting by sentences for smoother reading
-        
-        for chunk in chunks:
-            if chunk.strip():  # Only read non-empty chunks
-                speak(chunk, None if language == 'en' else "")  # Adjust speak to work with your language setting
-                input("Press Enter to continue reading...")  # Optional pause for user control
-                
-        print("Finished reading the book.")
-    except FileNotFoundError:
-        speak("The specified book file was not found.", "Το αρχείο του βιβλίου δεν βρέθηκε.")
-        print("Error: File not found.")
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'noplaylist': True,
+            'outtmpl': temp_file,  # Save as 'temp_audio.mp3'
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'postprocessor_args': ['-y'],  # Overwrite existing files if needed
+            'nopostoverwrites': False  # Ensure it doesn't keep webm file
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        # Check if the file was created
+        if os.path.exists(temp_file):
+            print(f"Audio file '{temp_file}' downloaded successfully.")
+        else:
+            print("Audio file not found.")
+            return
+
+        # Small delay before playback to ensure the file is ready
+        time.sleep(2)
+
+        # Initialize VLC player to play audio
+        player = vlc.MediaPlayer(f"file://{os.path.abspath(temp_file)}")
+        print("Playing audiobook...")
+        player.play()
+
+        # Wait for playback to start
+        time.sleep(1)
+
+        # Monitor playback or wait for user input to stop
+        input("Press Enter to stop playback...\n")
+        player.stop()
+
+        # Clean up temporary file
+        os.remove(temp_file)
     except Exception as e:
-        speak("There was an error while reading the book.", "Υπήρξε σφάλμα κατά την ανάγνωση του βιβλίου.")
-        print(f"Error: {e}")
+        speak("There was an error fetching or playing the audio.", "Υπήρξε σφάλμα κατά την ανάκτηση ή αναπαραγωγή του ήχου.")
+        print(f"Error during playback: {e}")
 
-def prepare_text_for_reading(text):
-    # Replace all newlines with a space to ensure continuous reading
-    return text.replace('\n', ' ')
+def select_and_play_audiobook():
+    audiobooks = fetch_audiobooks_from_api()
+    listed_audiobooks = list_audiobooks(audiobooks)
+    if not listed_audiobooks:
+        return
 
-def read_book(file_path, language='en'):
-    if file_path.lower().endswith('.pdf'):
-        read_pdf(file_path)
-    elif file_path.lower().endswith('.txt'):
-        read_text(file_path, language)
+    selected_audiobook = select_audiobook(listed_audiobooks)
+    if selected_audiobook:
+        speak(f"Playing {selected_audiobook['title']} by {selected_audiobook['author']}.", f"Αναπαραγωγή του {selected_audiobook['title']} από τον {selected_audiobook['author']}.")
+        print(f"Playing: {selected_audiobook['title']} by {selected_audiobook['author']}")
+        play_audio(selected_audiobook['url'])
     else:
-        speak("Unsupported file format.", "Μη υποστηριζόμενη μορφή αρχείου.")
-        print("Error: Unsupported file format.")
+        speak("No valid selection was made.", "Δεν έγινε έγκυρη επιλογή.")
 
 # Example usage
-read_book('book.txt')  # Replace with your actual file path
+select_and_play_audiobook()
