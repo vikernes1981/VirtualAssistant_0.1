@@ -1,9 +1,13 @@
 import requests
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def get_random_fact():
     api_url = "https://api.api-ninjas.com/v1/facts"
     headers = {
-        "X-Api-Key": "O8WSPd/oN3TDARLbASakUQ==ze6CfymldxzB65lH"  # Replace with your API key
+        "X-Api-Key": os.getenv("FACTS_API_KEY")  # Replace with your API key
     }
     
     response = requests.get(api_url, headers=headers)

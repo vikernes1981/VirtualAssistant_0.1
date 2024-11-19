@@ -1,4 +1,3 @@
-import random
 import webbrowser
 from datetime import datetime
 from entities import predict_intent, extract_entities
