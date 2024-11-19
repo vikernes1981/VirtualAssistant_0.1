@@ -2,15 +2,24 @@ import webbrowser
 import time
 import pyautogui
 
-# Function to open a website in Firefox with the specified profile
 def open_firefox_tab(url):
-    # Open the URL using the default browser (Firefox, if set as default)
-    webbrowser.get("firefox").open(url)
-    print(f"Opened {url} in Firefox.")
+    """Open a website in Firefox using the default browser profile."""
+    try:
+        webbrowser.get("firefox").open(url)
+        print(f"Opened {url} in Firefox.")
+    except webbrowser.Error as e:
+        print(f"Error opening {url} in Firefox: {e}")
+        print("Please ensure Firefox is installed and set as the default browser.")
+    except Exception as e:
+        print(f"Unexpected error opening {url}: {e}")
 
-# Function to close the current tab
 def close_firefox_tab():
-    time.sleep(2)  # Adjust this sleep time as needed
-    # Simulate pressing 'Ctrl + W' to close the current Firefox tab (on Windows/Linux)
-    pyautogui.hotkey("ctrl", "w")
-    print("Firefox tab closed successfully.")
+    """Close the current Firefox tab by simulating 'Ctrl + W' keypress."""
+    try:
+        time.sleep(2)  # Adjust this sleep time as needed
+        pyautogui.hotkey("ctrl", "w")
+        print("Firefox tab closed successfully.")
+    except pyautogui.FailSafeException:
+        print("PyAutoGUI fail-safe triggered. Move the mouse to the corner of the screen to avoid unintended actions.")
+    except Exception as e:
+        print(f"Unexpected error while closing the Firefox tab: {e}")

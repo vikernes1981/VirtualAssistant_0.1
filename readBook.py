@@ -34,19 +34,17 @@ def list_audiobooks(audiobooks):
     return audiobooks
 
 def select_audiobook(audiobooks):
-    try:
-        choice = int(input("Select a book by entering its number: ")) - 1
-        if 0 <= choice < len(audiobooks):
-            return audiobooks[choice]
-        else:
-            speak("Invalid choice. Please select a valid number.", "Μη έγκυρη επιλογή. Παρακαλώ επιλέξτε έναν έγκυρο αριθμό.")
-            print("Invalid choice.")
-            return None
-    except ValueError:
-        speak("Please enter a valid number.", "Παρακαλώ εισάγετε έναν έγκυρο αριθμό.")
-        print("Invalid input.")
-        return None
-
+    while True:  # Loop until a valid selection is made
+        try:
+            choice = int(input("Select a book by entering its number: ")) - 1
+            if 0 <= choice < len(audiobooks):
+                return audiobooks[choice]
+            else:
+                speak("Invalid choice. Please select a valid number.", "Μη έγκυρη επιλογή. Παρακαλώ επιλέξτε έναν έγκυρο αριθμό.")
+                print("Invalid choice.")
+        except ValueError:
+            speak("Please enter a valid number.", "Παρακαλώ εισάγετε έναν έγκυρο αριθμό.")
+            print("Invalid input.")
 
 def play_audio(url, title):
     try:
@@ -74,12 +72,11 @@ def play_audio(url, title):
             else:
                 print("Audio file not found.")
                 return
+
         # Save the playback position to a JSON file
         playback_data = {}
         json_file = "playback_positions.json"
-        # Load playback position from JSON file if it exists
         playback_position = 0
-        json_file = "playback_positions.json"
         if os.path.exists(json_file):
             with open(json_file, 'r') as f:
                 playback_data = json.load(f)
@@ -88,17 +85,17 @@ def play_audio(url, title):
         while True:
             # Play the audio file with mpv
             print(f"Playing audiobook '{title}' using mpv from position {playback_position} seconds...")
-            start_time = time.time()  # Record the start time
+            start_time = time.time()
             process = subprocess.Popen(
-            ["mpv", "--start=" + str(playback_position), file_name],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+                ["mpv", "--start=" + str(playback_position), file_name],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
             )
 
             input("Press Enter to stop playback...\n")
-            process.terminate()  # Stop playback
-            process.wait()  # Ensure process is fully terminated
+            process.terminate()
+            process.wait()
 
             # Calculate the elapsed time and update playback position
             elapsed_time = time.time() - start_time
@@ -107,25 +104,16 @@ def play_audio(url, title):
             # Ask user if they want to resume
             resume = input("Do you want to resume playback? (y/n): ").strip().lower()
             if resume != 'y':
-                
-                # Load existing playback positions if the file exists
                 if os.path.exists(json_file):
                     with open(json_file, 'r') as f:
                         playback_data = json.load(f)
-
-                # Update the playback position for the current book
                 playback_data[title] = playback_position
-
-                # Save the updated playback positions back to the file
                 with open(json_file, 'w') as f:
                     json.dump(playback_data, f, indent=4)
                 break
-
-                
     except Exception as e:
         speak("There was an error fetching or playing the audio.", "Υπήρξε σφάλμα κατά την ανάκτηση ή αναπαραγωγή του ήχου.")
         print(f"Error during playback: {e}")
-
 
 def select_and_play_audiobook():
     audiobooks = fetch_audiobooks_from_api()
@@ -142,4 +130,3 @@ def select_and_play_audiobook():
         play_audio(url, title)
     else:
         speak("No valid selection was made.", "Δεν έγινε έγκυρη επιλογή.")
-
