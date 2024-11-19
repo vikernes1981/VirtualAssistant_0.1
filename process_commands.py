@@ -1,4 +1,3 @@
-import random
 import webbrowser
 from datetime import datetime
 from entities import predict_intent, extract_entities
@@ -13,6 +12,11 @@ from youtube import play_youtube_music, stop_music_vlc, pause_music_vlc, set_vlc
 from handle_notes import handle_notes
 from globals import current_language
 from readBook import select_and_play_audiobook
+from jokes import get_random_joke
+from facts import get_random_fact
+
+
+
 
 def process_command(command):
     global current_language  # Use global variables for language
@@ -118,13 +122,8 @@ def process_command(command):
         pause_music_vlc()
 
     elif intent == "tell_joke":
-        jokes = [
-            "Why don't scientists trust atoms? Because they make up everything!",
-            "Why did the scarecrow win an award? Because he was outstanding in his field!",
-            "Why don't skeletons fight each other? They don't have the guts."
-        ]
-        joke = random.choice(jokes)
-        speak(joke, joke)  # Assuming similar structure for Greek jokes
+        joke = get_random_joke()
+        speak(joke)  # Assuming similar structure for Greek jokes
         pause_music_vlc()
 
     elif intent == "farewell":
@@ -132,17 +131,12 @@ def process_command(command):
         pause_music_vlc()
 
     elif intent == "get_fact":
-        facts = [
-            "Honey never spoils.",
-            "Bananas are berries, but strawberries aren't.",
-            "There are more stars in the universe than grains of sand on all of Earth's beaches."
-        ]
-        fact = random.choice(facts)
-        speak(fact, fact)  # Assuming similar structure for Greek facts
+        fact = get_random_fact()
+        speak(fact)  # Assuming similar structure for Greek facts
         pause_music_vlc()
 
     elif intent == "set_reminder":
-        speak("You can add a reminder as a note. Let's manage your notes.", "Μπορείς να προσθέσεις μια υπενθύμιση ως σημείωση. Ας διαχειριστούμε τις σημειώσεις σου.")
+        speak("You can add a reminder as a note.")
         handle_notes()
         pause_music_vlc()
 
