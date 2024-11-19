@@ -143,6 +143,3 @@ def select_and_play_audiobook():
     else:
         speak("No valid selection was made.", "Δεν έγινε έγκυρη επιλογή.")
 
-
-# Example usage
-select_and_play_audiobook()
