@@ -4,7 +4,7 @@ from entities import predict_intent, extract_entities
 from feedback import handle_feedback
 from speech import recognize_speech, speak
 from browser import close_firefox_tab
-from volume_control import get_volume, set_volume
+from volume_control import set_volume, get_volume
 from weather import get_weather
 from news import get_news
 from dictate import real_time_dictation
@@ -211,7 +211,7 @@ def process_command(command):
             except (ValueError, TypeError) as e:
                 print(f"Error setting music volume: {e}")
                 speak("I couldn't understand the volume level. Please specify a number.", "Δεν κατάλαβα την ένταση. Παρακαλώ καθορίστε έναν αριθμό.")
-            pause_music_vlc()
+                pause_music_vlc()
 
         else:
             speak("I'm not sure how to respond to that. Please try again with different words.", "Δεν είμαι σίγουρος πώς να απαντήσω σε αυτό. Δοκίμασε ξανά με διαφορετικές λέξεις.")
