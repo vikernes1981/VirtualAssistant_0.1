@@ -51,6 +51,7 @@ def play_youtube_music():
                 search_url = f"https://www.youtube.com/results?search_query={query}"
                 speak(f"Searching YouTube for {user_choice}.", f"Αναζήτηση στο YouTube για {user_choice}.")
                 webbrowser.open(search_url)
+                stop_music_vlc()  # Stop any music that is is playing
                 return  # Exit the function to avoid further processing
 
         # Check if the file already exists
