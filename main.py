@@ -1,27 +1,35 @@
-from globals import current_language, recognizer  # Import global variables
+from globals import current_language
 from speech import speak, recognize_speech
 from wake_word import listen_for_wake_word
-from database import create_feedback_table
 from process_commands import process_command
+from database import create_feedback_table
 
 if __name__ == "__main__":
     try:
-        create_feedback_table()  # Initialize the database if needed
+        # Initialize the feedback table
+        create_feedback_table()
     except Exception as e:
         print(f"Error initializing the database: {e}")
         speak("There was an error initializing the database.", "Υπήρξε σφάλμα κατά την αρχικοποίηση της βάσης δεδομένων.")
     
-    while True:  # Keep the assistant running
+    while True:
         try:
-            listen_for_wake_word("jarvis_linux.ppn")  # Use the wake word file (replace as needed)
-            speak("Hello!", "Γεια σου!")  # Greet the user
-            user_input = recognize_speech()  # Get user input
+            # Step 1: Listen for the wake word
+            listen_for_wake_word("jarvis_linux.ppn")  # Ensure correct path to your wake word model
+            
+            # Step 2: Greet the user
+            speak("Ahoy.", "Γεια σου! Πώς μπορώ να σε βοηθήσω;")
+            
+            # Step 3: Recognize speech input
+            user_input = recognize_speech()
             if user_input:
+                # Step 4: Process the user's command
                 try:
-                    process_command(user_input)  # Process the user's command
+                    process_command(user_input)
                 except Exception as e:
                     print(f"Error processing command: {e}")
-                    speak("There was an error processing your command.", "Υπήρξε σφάλμα κατά την επεξεργασία της εντολής σου.")
+                    speak("There was an error processing your command.", 
+                          "Υπήρξε σφάλμα κατά την επεξεργασία της εντολής σου.")
         except KeyboardInterrupt:
             print("Assistant stopped by user.")
             speak("Goodbye.", "Αντίο.")
