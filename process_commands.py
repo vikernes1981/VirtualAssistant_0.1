@@ -6,10 +6,10 @@ from speech import recognize_speech, speak
 from browser import close_firefox_tab
 from volume_control import set_volume, get_volume
 from weather import get_weather
-from news import get_news
+from news import fetch_and_process_news
 from dictate import real_time_dictation
 from youtube import play_youtube_music, stop_music_vlc, pause_music_vlc, set_vlc_volume
-from handle_notes import handle_notes
+from handle_notes import process_user_command as handle_notes
 from globals import current_language
 from readBook import select_and_play_audiobook
 from jokes import get_random_joke
@@ -123,12 +123,26 @@ def process_command(command):
 
         elif intent == "get_news":
             try:
-                news_info_en, news_info_gr = get_news()  # Get both English and Greek news
-                speak(news_info_en, news_info_gr)
+                # Fetch news using the `fetch_and_process_news` function
+                news_list = fetch_and_process_news()
+                
+                if news_list:
+                    # Speak each news item
+                    for idx, (title, summary) in enumerate(news_list, start=1):
+                        print(f"News {idx}:")
+                        print(f"  Title: {title}")
+                        print(f"  Summary: {summary}")
+                        speak(f"News {idx}: {title}. {summary}.", 
+                              f"Νέα {idx}: {title}. {summary}.")
+                else:
+                    speak("No news articles were found.", "Δεν βρέθηκαν ειδήσεις.")
             except Exception as e:
                 print(f"Error fetching news: {e}")
                 speak("There was an error fetching the news.", "Υπήρξε σφάλμα κατά την αναζήτηση ειδήσεων.")
+            
+            # Pause music if VLC is active
             pause_music_vlc()
+
 
         elif intent == "open_website":
             speak("Please specify the website you want to open.", "Παρακαλώ καθορίσε την ιστοσελίδα που θέλεις να ανοίξεις.")
