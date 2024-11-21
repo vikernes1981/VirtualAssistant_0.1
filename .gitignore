@@ -3,7 +3,6 @@ venv
 *.mp3
 audio.webm
 intent_model
-*.txt
 jarvis_linux.ppn
 pyautogui
 time
@@ -12,3 +11,4 @@ fetch_books.py
 downloads
 *.webm
 *.json
+*.wav
