@@ -2,8 +2,6 @@
 venv
 *.mp3
 audio.webm
-intent_model
-jarvis_linux.ppn
 pyautogui
 time
 *.m4a
