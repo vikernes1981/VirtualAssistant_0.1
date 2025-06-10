@@ -11,3 +11,5 @@ downloads
 *.json
 *.wav
 *.db
+*.ppn
+__pycache__/

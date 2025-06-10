@@ -1,25 +1,47 @@
-import webbrowser
 import time
 import pyautogui
+import webbrowser
+
 
 def open_firefox_tab(url):
-    """Open a website in Firefox using the default browser profile."""
+    """
+    Opens the given URL in Firefox if available, otherwise falls back to default browser.
+    """
     try:
         webbrowser.get("firefox").open(url)
-        print(f"Opened {url} in Firefox.")
+        print(f"[✓] Opened URL in Firefox: {url}")
     except webbrowser.Error as e:
-        print(f"Error opening {url} in Firefox: {e}")
-        print("Please ensure Firefox is installed and set as the default browser.")
+        print(f"[!] Firefox not available ({e}). Trying default browser...")
+        try:
+            webbrowser.open(url)
+            print(f"[✓] Opened URL with fallback browser: {url}")
+        except Exception as fallback_e:
+            print(f"[✗] Failed to open URL: {fallback_e}")
     except Exception as e:
-        print(f"Unexpected error opening {url}: {e}")
+        print(f"[✗] Unexpected error: {e}")
+
 
 def close_firefox_tab():
-    """Close the current Firefox tab by simulating 'Ctrl + W' keypress."""
+    """
+    Closes the current Firefox tab by simulating 'Ctrl + W'.
+    """
     try:
-        time.sleep(2)  # Adjust this sleep time as needed
+        time.sleep(0.5)
         pyautogui.hotkey("ctrl", "w")
-        print("Firefox tab closed successfully.")
+        print("[✓] Firefox tab closed.")
     except pyautogui.FailSafeException:
-        print("PyAutoGUI fail-safe triggered. Move the mouse to the corner of the screen to avoid unintended actions.")
+        print("[!] PyAutoGUI fail-safe triggered (move mouse to corner).")
     except Exception as e:
-        print(f"Unexpected error while closing the Firefox tab: {e}")
+        print(f"[✗] Failed to close tab: {e}")
+
+
+def change_firefox_tab():
+    """
+    Switches to the next Firefox tab by simulating 'Ctrl + Tab'.
+    """
+    try:
+        time.sleep(0.5)
+        pyautogui.hotkey("ctrl", "tab")
+        print("[✓] Switched Firefox tab.")
+    except Exception as e:
+        print(f"[✗] Failed to switch tab: {e}")

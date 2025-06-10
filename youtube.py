@@ -1,98 +1,112 @@
+"""
+Handles YouTube music playback using voice commands and VLC player.
+
+Includes logic for playing, pausing, stopping music, and setting volume.
+"""
+
 import os
-from yt_dlp import YoutubeDL
-import vlc
 import time
+import json
+import vlc
+import urllib.parse
 import webbrowser
-from speech import recognize_speech, speak  # Assuming you have these functions for user input and responses
-import urllib.parse  # For URL encoding user input
+from yt_dlp import YoutubeDL
+from speech import recognize_speech, speak
+from globals import YOUTUBE_PRESETS
 
-player = None  # Global VLC player instance
-music_paused = False  # Global flag to track pause state
+# Global VLC player state
+player: vlc.MediaPlayer | None = None
+music_paused: bool = False
 
-def stop_current_music():
-    """Stop the currently playing music if there is any."""
+
+def stop_current_music() -> None:
+    """
+    Stop the currently playing VLC track, if any.
+    """
     global player
     try:
-        if player is not None and player.is_playing():
+        if player and player.is_playing():
             player.stop()
             print("Stopped currently playing music.")
     except Exception as e:
         print(f"Error stopping music: {e}")
-        speak("An error occurred while trying to stop the music.", "Προέκυψε σφάλμα κατά την προσπάθεια διακοπής της μουσικής.")
+        speak("An error occurred while trying to stop the music.")
 
-def play_youtube_music():
+
+def play_youtube_music() -> None:
+    """
+    Prompt user for a music preference, attempt to match or search,
+    then download (if needed) and play via VLC.
+    """
     global player
 
     try:
-        # Stop any music that is already playing
         stop_current_music()
+        speak("What would you like to listen to?")
+        user_choice = recognize_speech()
 
-        # Present options to the user
-        speak(
-            "What would you like to listen to?",
-            "Τι θα ήθελες να ακούσεις; Έχεις τρεις επιλογές: Λόφι, Γουόρκραφτ ή να καθορίσεις ένα θέμα μουσικής ή καλλιτέχνη."
-        )
-        user_choice = recognize_speech()  # Function to capture user input via speech
+        if not user_choice:
+            speak("I didn't catch that.")
+            return
 
-        # Determine which URL to use based on user choice
-        if user_choice:
-            user_choice = user_choice.lower()
-            if "relax" in user_choice or "χαλαρώσω" in user_choice:  # Check for English ("relax") and Greek ("χαλαρώσω")
-                print("Playing Lofi music.")
-                video_url = "https://www.youtube.com/watch?v=sF80I-TQiW0"  # Lofi URL
-                filename = "lofi_audio.m4a"  # Specify a name for the Lofi file
-            elif "warcraft" in user_choice or "γουόρκραφτ" in user_choice:  # Check for English ("warcraft") and Greek ("γουόρκραφτ")
-                print("Playing Warcraft music.")
-                video_url = "https://www.youtube.com/watch?v=ebmwJnhtMgY"  # Warcraft URL
-                filename = "warcraft_audio.m4a"  # Specify a name for the Warcraft file
-            else:
-                # Construct a YouTube search URL based on user input and open in browser
-                query = urllib.parse.quote(user_choice)  # URL encode the user input
-                search_url = f"https://www.youtube.com/results?search_query={query}"
-                speak(f"Searching YouTube for {user_choice}.", f"Αναζήτηση στο YouTube για {user_choice}.")
-                webbrowser.open(search_url)
-                stop_music_vlc()  # Stop any music that is is playing
-                return  # Exit the function to avoid further processing
+        user_choice = user_choice.lower()
+        filename, video_url = None, None
 
-        # Check if the file already exists
-        if os.path.exists(filename):
-            print(f"File {filename} already exists. Playing the existing file.")
-        else:
-            # Download/stream the best audio using yt-dlp
+        # Check YOUTUBE_PRESETS
+        for key, preset in YOUTUBE_PRESETS.items():
+            if key in user_choice:
+                filename = preset["filename"]
+                video_url = preset["url"]
+                break
+
+        # No match — perform YouTube search
+        if not filename or not video_url:
+            query = urllib.parse.quote(user_choice)
+            search_url = f"https://www.youtube.com/results?search_query={query}"
+            speak(f"Searching YouTube for {user_choice}.")
+            webbrowser.open(search_url)
+            stop_music_vlc()
+            return
+
+        # Download if needed
+        if not os.path.exists(filename):
             options = {
                 'format': 'bestaudio/best',
                 'noplaylist': True,
                 'quiet': True,
-                'outtmpl': filename  # Use specified filename
+                'outtmpl': filename
             }
-
             with YoutubeDL(options) as ydl:
                 try:
-                    ydl.extract_info(video_url, download=True)
-                    print(f"Downloaded and saved as {filename}")
+                    ydl.download([video_url])
+                    print(f"Downloaded audio as {filename}")
                 except Exception as e:
-                    print(f"Error downloading video: {e}")
-                    speak("An error occurred while trying to download the music.", "Προέκυψε σφάλμα κατά τη λήψη της μουσικής.")
+                    print(f"Download error: {e}")
+                    speak("Failed to download the requested music.")
                     return
 
-        # Use VLC to play audio
+        # Play music
         if os.path.exists(filename):
             player = vlc.MediaPlayer(filename)
             player.play()
-            time.sleep(1)  # Give some time to start playing
+            time.sleep(1)
         else:
-            print("Error: Audio file not found.")
-            speak("An error occurred while trying to play the music.", "Προέκυψε σφάλμα κατά την προσπάθεια αναπαραγωγής της μουσικής.")
+            print("File missing after download attempt.")
+            speak("Unable to find or play the downloaded music.")
 
     except Exception as e:
-        print(f"Unexpected error in play_youtube_music: {e}")
-        speak("An unexpected error occurred while trying to play music.", "Προέκυψε απρόσμενο σφάλμα κατά την προσπάθεια αναπαραγωγής της μουσικής.")
+        print(f"Unexpected error: {e}")
+        speak("Something went wrong while trying to play the music.")
 
-def pause_music_vlc():
+
+def pause_music_vlc() -> None:
+    """
+    Toggle pause/resume on VLC player if active.
+    """
     global player, music_paused
     try:
-        if player is not None:
-            if player.is_playing() and not music_paused:
+        if player:
+            if player.is_playing():
                 player.pause()
                 music_paused = True
                 print("Music paused.")
@@ -101,13 +115,17 @@ def pause_music_vlc():
                 music_paused = False
                 print("Music resumed.")
     except Exception as e:
-        print(f"Error pausing/resuming music: {e}")
-        speak("An error occurred while trying to pause or resume the music.", "Προέκυψε σφάλμα κατά την προσπάθεια παύσης ή συνέχισης της μουσικής.")
+        print(f"Error toggling playback: {e}")
+        speak("An error occurred while toggling the music.")
 
-def stop_music_vlc():
+
+def stop_music_vlc() -> None:
+    """
+    Stop music and reset player reference.
+    """
     global player
     try:
-        if player is not None:
+        if player:
             player.stop()
             player = None
             print("Music stopped.")
@@ -115,16 +133,22 @@ def stop_music_vlc():
             print("No music is currently playing.")
     except Exception as e:
         print(f"Error stopping music: {e}")
-        speak("An error occurred while trying to stop the music.", "Προέκυψε σφάλμα κατά την προσπάθεια διακοπής της μουσικής.")
+        speak("An error occurred while stopping the music.")
 
-def set_vlc_volume(volume_level):
-    """Set the volume of VLC player."""
+
+def set_vlc_volume(volume_level: int) -> None:
+    """
+    Set the VLC player's internal volume.
+
+    Args:
+        volume_level (int): Target volume (0–100).
+    """
+    global player
     try:
         if player:
-            # Volume level should be between 0 (mute) and 100 (max)
             volume_level = max(0, min(100, volume_level))
             player.audio_set_volume(volume_level)
             print(f"VLC volume set to {volume_level}%")
     except Exception as e:
-        print(f"Error setting VLC volume: {e}")
-        speak("An error occurred while trying to set the volume.", "Προέκυψε σφάλμα κατά την προσπάθεια ρύθμισης της έντασης.")
+        print(f"Error setting volume: {e}")
+        speak("Failed to set music volume.")

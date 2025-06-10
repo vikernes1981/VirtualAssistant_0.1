@@ -1,75 +1,80 @@
-import os
-import sounddevice as sd
-from scipy.io.wavfile import write
-import requests
-import speech_recognition as sr
-from gtts import gTTS
-from globals import current_language
-from langdetect import detect
-import time
-from dotenv import load_dotenv
+"""
+Handles all speech-related operations including TTS, STT (Google + Whisper),
+audio recording, and basic speech validation.
+"""
 
-# Load environment variables
+import subprocess
+import requests
+import numpy as np
+import sounddevice as sd
+import speech_recognition as sr
+from scipy.io.wavfile import write
+from gtts import gTTS
+from dotenv import load_dotenv
+from globals import number_map
+import os
+
+# Optional fallback pause (only imported if available)
+try:
+    from youtube import pause_music_vlc
+except ImportError:
+    pause_music_vlc = lambda: None
+
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
-
 if not openai_api_key:
-    raise ValueError("OpenAI API key not found. Please ensure it's set in the .env file.")
+    raise ValueError("Missing OpenAI API key.")
 
-# Initialize Recognizer
 recognizer = sr.Recognizer()
 
-def speak(text_en, text_gr=None):
-    """Generate and play speech based on the current language setting."""
-    try:
-        start_time = time.time()
 
-        lang = 'el' if current_language == 'el' else 'en'  # Switch language based on current setting
-        text_to_speak = text_gr if current_language == 'el' else text_en
-        tts = gTTS(text=text_to_speak, lang=lang)
-        tts.save("response.mp3")
-
-        if os.path.exists("response.mp3"):
-            os.system("mpg123 response.mp3")  # Play the generated speech
-            print(f"Speak: Operation took {time.time() - start_time:.2f} seconds")
-        else:
-            print("Error: Could not generate the speech file.")
-            raise FileNotFoundError("Generated speech file not found.")
-    except Exception as e:
-        print(f"Error generating or playing speech: {e}")
-        if lang == 'el':
-            print("Υπήρξε σφάλμα κατά τη δημιουργία ή την αναπαραγωγή της ομιλίας.")
-        else:
-            print("There was an error generating or playing the speech.")
-
-def record_audio(filename="fallback_audio.wav", duration=5, fs=44100):
+def speak(text: str) -> None:
     """
-    Records audio from the microphone and saves it as a WAV file.
+    Convert text to speech using Google TTS and play it via mpg123.
+
     Args:
-        filename: Name of the file to save the audio.
-        duration: Duration of the recording in seconds.
-        fs: Sampling frequency (default is 44100 Hz).
+        text (str): The sentence to vocalize.
+    """
+    try:
+        tts = gTTS(text=text, lang="en")
+        tts.save("response.mp3")
+        subprocess.run(["mpg123", "response.mp3"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"Error in speak(): {e}")
+
+
+def record_audio(filename: str = "fallback_audio.wav", duration: int = 5, fs: int = 44100) -> str | None:
+    """
+    Record audio from the microphone for a fixed duration.
+
+    Args:
+        filename (str): Where to save the recorded WAV file.
+        duration (int): How long to record in seconds.
+        fs (int): Sampling rate in Hz.
+
     Returns:
-        str: The file path of the recorded audio.
+        str or None: Path to the recorded file or None on failure.
     """
     try:
         print(f"Recording for {duration} seconds...")
         audio_data = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype="int16")
-        sd.wait()  # Wait until the recording is finished
-        write(filename, fs, audio_data)  # Save as WAV file
-        print(f"Audio recorded and saved to {filename}")
+        sd.wait()
+        write(filename, fs, audio_data)
         return filename
     except Exception as e:
         print(f"Error recording audio: {e}")
         return None
 
-def transcribe_with_whisper(audio_path):
+
+def transcribe_with_whisper(audio_path: str) -> str:
     """
-    Sends audio to Whisper API for transcription.
+    Transcribe audio using OpenAI Whisper API.
+
     Args:
-        audio_path: The path to the audio file.
+        audio_path (str): Path to the audio file to transcribe.
+
     Returns:
-        str: Transcribed text.
+        str: Transcribed text or empty string on error.
     """
     try:
         with open(audio_path, "rb") as audio_file:
@@ -79,75 +84,60 @@ def transcribe_with_whisper(audio_path):
                 files={"file": audio_file},
                 data={"model": "whisper-1"}
             )
-        result = response.json()
-        return result.get("text", "")
+        return response.json().get("text", "")
     except Exception as e:
-        print(f"Error using Whisper API: {e}")
+        print(f"Whisper API error: {e}")
         return ""
 
-# Number mapping dictionary for numeric recognition
-number_map = {
-    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-    "1": 1, "2": 2, "3": 3, "4": 4, "5": 5,
-    "6": 6, "7": 7, "8": 8, "9": 9, "10": 10
-}
 
-def recognize_speech(expected_type=None):
+def recognize_speech(expected_type: str | None = None) -> str | None:
     """
-    Recognize speech input with Google Speech-to-Text first, and fallback to Whisper.
+    Record speech and try to transcribe it with Google STT first, then Whisper if needed.
+
     Args:
-        expected_type (str): The type of expected input ("number", "text", etc.).
+        expected_type (str | None): Optional hint for validating output ("number", etc.)
+
     Returns:
-        str: The recognized text or None if both methods fail.
+        str or None: Transcribed and optionally validated result.
     """
     try:
-        # Record audio
-        audio_file = record_audio(filename="fallback_audio.wav", duration=5)
+        audio_file = record_audio()
         if not audio_file:
-            speak("I could not record any audio. Please try again.", "Δεν μπόρεσα να καταγράψω ήχο. Παρακαλώ προσπάθησε ξανά.")
+            speak("I could not record any audio.")
             return None
 
-        # Step 1: Try Google Speech-to-Text
         try:
-            recognizer = sr.Recognizer()
             with sr.AudioFile(audio_file) as source:
                 audio = recognizer.record(source)
-            transcription = recognizer.recognize_google(audio).strip().lower()
-            print(f"Google Transcription: {transcription}")
-            return validate_transcription(transcription, expected_type)
-        except sr.UnknownValueError:
-            print("Google Speech-to-Text couldn't understand the audio.")
-        except sr.RequestError as e:
-            print(f"Google Speech-to-Text failed with error: {e}")
+            text = recognizer.recognize_google(audio).strip().lower()
+            print(f"Google Transcription: {text}")
+            return validate_transcription(text, expected_type)
+        except (sr.UnknownValueError, sr.RequestError):
+            print("Google STT failed, falling back to Whisper.")
 
-        # Step 2: Fallback to Whisper
-        print("Trying Whisper for transcription...")
-        transcription = transcribe_with_whisper(audio_file).strip().lower()
-        print(f"Whisper Transcription: {transcription}")
-        return validate_transcription(transcription, expected_type)
+        text = transcribe_with_whisper(audio_file).strip().lower()
+        print(f"Whisper Transcription: {text}")
+        return validate_transcription(text, expected_type)
+
     except Exception as e:
-        print(f"Unexpected error during transcription: {e}")
-        speak("An unexpected error occurred while processing your audio.", 
-              "Προέκυψε απρόσμενο σφάλμα κατά την επεξεργασία του ήχου σου.")
+        print(f"Transcription error: {e}")
+        speak("An error occurred during voice processing.")
         return None
 
 
-def validate_transcription(transcription, expected_type):
+def validate_transcription(text: str, expected_type: str | None) -> str | None:
     """
-    Validate the transcription based on the expected type.
+    Post-process transcription result based on expected type.
+
     Args:
-        transcription (str): The transcribed text.
-        expected_type (str): The expected type of input ("number", "text").
+        text (str): The raw transcribed text.
+        expected_type (str | None): If "number", tries to normalize spoken numerals.
+
     Returns:
-        str: The validated transcription or None if invalid.
+        str or None: Cleaned value or None if validation fails.
     """
     if expected_type == "number":
-        if transcription.isdigit():
-            return transcription
-        elif transcription in number_map:
-            return str(number_map[transcription])
-        else:
-            print(f"Invalid number: {transcription}")
-            return None
-    return transcription  # For general text inputs
+        if text.isdigit():
+            return text
+        return str(number_map.get(text)) if text in number_map else None
+    return text

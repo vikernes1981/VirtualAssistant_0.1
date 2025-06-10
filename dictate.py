@@ -1,66 +1,137 @@
-import os
-from speech import speak, recognize_speech  # Import updated speech functions
-from globals import current_language
+"""
+Handles real-time voice dictation using Whisper transcription and live file monitoring.
+
+Dictation stops automatically when "stop dictation" is detected in the transcribed file,
+and supports deleting words mid-dictation via a Wit.ai intent.
+"""
+
+import threading
+import time
+from speech import speak, recognize_speech, record_audio, transcribe_with_whisper
 from database import insert_dictated_text
-from dotenv import load_dotenv
-import requests
+from wit_integration import get_intent_from_wit
 
-# Load environment variables
-load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
+# Shared state
+stop_flag = False
+dictation_text = ""
+dictation_lock = threading.Lock()
+DICTATION_FILE = "dictation.txt"  # Temp file to monitor live transcription
 
-if not openai_api_key:
-    raise ValueError("OpenAI API key not found. Please ensure it's set in the .env file.")
 
-def real_time_dictation(stop_word="τέλος"):
-    text_output = ""
+def detect_stop_phrase_in_file(stop_phrase: str = "stop dictation", poll_interval: float = 1.0) -> None:
+    """
+    Monitor the transcription output file for a stop phrase.
+
+    Args:
+        stop_phrase (str): Phrase that signals end of dictation.
+        poll_interval (float): Time between polling the file in seconds.
+    """
+    global stop_flag
+    print("Watching file for stop command...")
+    last_position = 0
+
+    while not stop_flag:
+        try:
+            with open(DICTATION_FILE, "r") as f:
+                f.seek(last_position)
+                new_lines = f.readlines()
+                last_position = f.tell()
+
+            for line in new_lines:
+                if stop_phrase in line.lower():
+                    print("Stop word detected in file.")
+                    stop_flag = True
+                    return
+
+        except FileNotFoundError:
+            pass  # File may not exist yet
+
+        time.sleep(poll_interval)
+
+
+def real_time_dictation(stop_phrase: str = "stop dictation") -> str:
+    """
+    Perform continuous dictation using Whisper and file monitoring.
+    Allows deleting words with a voice command, and stops on a spoken stop phrase.
+
+    Args:
+        stop_phrase (str): Spoken phrase that ends dictation.
+
+    Returns:
+        str: Final transcribed and optionally edited text.
+    """
+    global stop_flag, dictation_text
+    stop_flag = False
+    dictation_text = ""
+
+    # Reset output file
+    with open(DICTATION_FILE, "w") as f:
+        f.write("")
+
+    speak("I'm ready. Say 'stop dictation' to end.")
+    print("Start dictating. You can also say 'delete words'.")
+
+    # Start file-monitoring thread
+    threading.Thread(target=detect_stop_phrase_in_file, daemon=True).start()
+
     try:
-        speak("I am ready to start dictation.", "Είμαι έτοιμος να αρχίσω την υπαγόρευση. Πες 'τέλος' για να σταματήσεις.")
-        print("Start speaking. Say 'τέλος' to stop or 'delete words' to remove specific words.")
+        while not stop_flag:
+            audio_path = record_audio(duration=20)
+            if not audio_path:
+                speak("There was an issue recording.")
+                break
 
-        while True:
-            # Capture and transcribe audio using recognize_speech()
-            transcription = recognize_speech()
-
+            transcription = transcribe_with_whisper(audio_path).strip().lower()
             if not transcription:
-                print("No valid transcription received. Stopping dictation.")
-                break
+                continue
 
-            # Check for stop word
-            if stop_word in transcription:
-                speak("Dictation stopped.", "Η υπαγόρευση σταμάτησε.")
-                break
-            elif "delete words" in transcription or "διαγραφή λέξεων" in transcription:
-                speak("How many words do you want to delete?", "Πόσες λέξεις θέλεις να διαγράψεις;")
+            print("You said:", transcription)
+
+            # Append to monitoring file
+            with open(DICTATION_FILE, "a") as f:
+                f.write(transcription + "\n")
+
+            # Check for deletion intent
+            intent = get_intent_from_wit(transcription)
+            if intent == "delete_text":
+                speak("How many words should I delete?")
+                response = recognize_speech(expected_type="number")
                 try:
-                    num_words = int(input("Enter the number of words to delete: "))
-                    words = text_output.strip().split()
-                    if len(words) >= num_words:
-                        text_output = " ".join(words[:-num_words])
-                        print(f"The last {num_words} words have been removed.")
+                    if response and response.isdigit():
+                        num_words = int(response)
                     else:
-                        speak("Not enough words to delete.", "Δεν υπάρχουν αρκετές λέξεις για διαγραφή.")
-                except ValueError:
-                    speak("Invalid number.", "Μη έγκυρος αριθμός.")
-            else:
-                text_output += transcription + " "
-                print(transcription, end=" ", flush=True)
+                        num_words = 0
+
+                    with dictation_lock:
+                        words = dictation_text.strip().split()
+                        if num_words > 0 and len(words) >= num_words:
+                            dictation_text = " ".join(words[:-num_words])
+                            speak(f"Deleted the last {num_words} words.")
+                        else:
+                            speak("Not enough words to delete.")
+                except Exception as e:
+                    print(f"[✗] Error deleting words: {e}")
+                    speak("Something went wrong.")
+                continue
+
+            # Append transcribed sentence to memory buffer
+            with dictation_lock:
+                dictation_text += transcription + " "
 
     except Exception as e:
-        print(f"Error during dictation: {e}")
-        speak("An error occurred during dictation.", "Υπήρξε σφάλμα κατά την υπαγόρευση.")
+        print(f"Dictation error: {e}")
+        speak("An error occurred during dictation.")
         return ""
 
-    # Store the text in the database
-    if text_output.strip():
-        language = 'gr' if current_language == 'gr' else 'en'
+    # Final save
+    if dictation_text.strip():
         try:
-            if insert_dictated_text(text_output.strip(), language):
-                speak("The text has been stored in the database.", "Το κείμενο αποθηκεύτηκε στη βάση δεδομένων.")
+            if insert_dictated_text(dictation_text.strip(), language="en"):
+                speak("The text has been saved.")
             else:
-                speak("There was an error saving the text to the database.", "Υπήρξε σφάλμα κατά την αποθήκευση του κειμένου.")
+                speak("Failed to save the text.")
         except Exception as e:
-            print(f"Error saving text to the database: {e}")
-            speak("There was an error while saving the text.", "Υπήρξε σφάλμα κατά την αποθήκευση του κειμένου.")
+            print(f"Database error: {e}")
+            speak("There was an error saving the text.")
 
-    return text_output
+    return dictation_text.strip()
