@@ -14,7 +14,6 @@ from wit_conversation import extract_intent_and_entities
 from fallback_handler import handle_unknown
 
 
-
 if __name__ == "__main__":
     try:
         initialize_database()
@@ -26,6 +25,12 @@ if __name__ == "__main__":
         try:
             # Wait for wake word trigger
             listen_for_wake_word(WAKE_WORD_MODEL_PATH)
+
+            # Visual log divider for clarity
+            print("\n" + "=" * 60)
+            print("🟢 New Wake Word Triggered — Listening for Intent")
+            print("=" * 60 + "\n")
+
             speak("Ahoy.")
 
             # Capture user speech
@@ -39,7 +44,7 @@ if __name__ == "__main__":
 
             # Extract intent and entities using Wit.ai and fallback methods
             intent, entities = extract_intent_and_entities(user_input)
-            print(f"Intent: {intent}, Entities: {entities}")
+            
 
             # Route to handler
             handle_intent(intent, entities, user_input)

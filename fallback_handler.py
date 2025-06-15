@@ -45,7 +45,6 @@ def handle_unknown(_, command, override=False):
     """
     cmd = command.lower()
     if override:
-        print(f"[✓] Override fallback triggered: {cmd}")
         for keyword, intent in KEYWORD_INTENT_MAP.items():
             if keyword in cmd:
                 handler = INTENT_ROUTER.get(intent)

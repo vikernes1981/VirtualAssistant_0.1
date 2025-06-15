@@ -38,7 +38,6 @@ def get_intent_from_wit(text: str) -> str | None:
         response = requests.get(WIT_API_URL, headers=headers, params=params, timeout=3)
         response.raise_for_status()
         data = response.json()
-        print(f"[WIT] Response: {data}")
 
         intents = data.get("intents", [])
         if intents:

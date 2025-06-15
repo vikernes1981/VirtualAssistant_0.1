@@ -10,8 +10,15 @@ from volume_control import set_volume, get_volume
 from read_book import select_and_play_audiobook
 
 def handle_greeting(_, __): speak("Hello! How can I help you?")
-def handle_time(_, __): speak(f"The current time is {datetime.now().strftime('%H:%M')}.")
-def handle_date(_, __): speak(f"Today is {datetime.now().strftime('%A, %B %d, %Y')}.")
+def handle_time(_, __):
+    current_time = datetime.now().strftime('%H:%M')
+    print(f"Current time: {current_time}")
+    speak(f"The current time is {current_time}.")
+
+def handle_date(_, __):
+    current_date = datetime.now().strftime('%A, %B %d, %Y')
+    print(f"Current date: {current_date}")
+    speak(f"Today is {current_date}.")
 def handle_close_tab(_, __): close_firefox_tab(); pause_music_vlc()
 def handle_dictation(_, __): transcribed = real_time_dictation(); print("Dictation result:", transcribed); pause_music_vlc()
 def handle_volume_up(_, __): vol = min(get_volume() + 10, 100); set_volume(vol); speak(f"Volume increased to {vol}%"); pause_music_vlc()

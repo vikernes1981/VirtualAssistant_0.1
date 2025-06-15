@@ -15,14 +15,7 @@ from globals import number_map, PLAYBACK_STATE_FILE
 
 API_URL = "https://techodyssey.org/audiobooks"
 
-
 def fetch_audiobooks_from_api() -> list[dict]:
-    """
-    Fetch the list of available audiobooks from the remote API.
-
-    Returns:
-        list[dict]: List of audiobook metadata dictionaries.
-    """
     try:
         response = requests.get(API_URL, timeout=5)
         if response.status_code == 200:
@@ -37,43 +30,33 @@ def fetch_audiobooks_from_api() -> list[dict]:
         print(f"Error: {e}")
     return []
 
-
 def list_audiobooks(audiobooks: list[dict]) -> list[dict] | None:
-    """
-    Print and speak the list of audiobooks.
-
-    Args:
-        audiobooks (list[dict]): The fetched audiobook data.
-
-    Returns:
-        list[dict] | None: The same list if non-empty, else None.
-    """
     if not audiobooks:
         speak("No audiobooks are available at the moment.")
         return None
+
     speak("Here are the available audiobooks.")
-    print("Available Audiobooks:")
+    print("\n\n========== 🎧 AVAILABLE AUDIOBOOKS ==========")
     for idx, book in enumerate(audiobooks):
         print(f"{idx + 1}. {book['title']} by {book['author']}")
+    print("=============================================\n\n")
     return audiobooks
 
 
 def select_audiobook(audiobooks: list[dict]) -> dict | None:
-    """
-    Prompt the user to select an audiobook via voice.
-
-    Args:
-        audiobooks (list[dict]): The list of available audiobooks.
-
-    Returns:
-        dict | None: The selected book, or None if selection failed.
-    """
     while True:
-        speak("Please say the number of the book you want to listen to.")
+        speak("Please say the number of the book you want to listen to. You can also say 'exit' to cancel.")
+        print("Please say the number of the book you want to listen to. You can also say 'exit' to cancel.")
+        
         user_input = recognize_speech(expected_type="number")
-        if not user_input:
+        if user_input:
+            print(f"You said: {user_input}")
+        else:
             speak("I didn't hear anything.")
             continue
+
+        if "exit" in user_input.lower():
+            return "EXIT_FLAG"
 
         choice_raw = user_input.lower().strip()
         selected = number_map.get(choice_raw)
@@ -84,13 +67,6 @@ def select_audiobook(audiobooks: list[dict]) -> dict | None:
 
 
 def play_audio(url: str, title: str) -> None:
-    """
-    Download and play an audiobook using mpv, with playback resume support.
-
-    Args:
-        url (str): The YouTube URL of the audiobook.
-        title (str): The title used for filename and tracking.
-    """
     try:
         safe_title = "".join(c if c.isalnum() or c in (" ", "-", "_") else "_" for c in title).strip()
         file_name = f"{safe_title}.webm"
@@ -112,7 +88,12 @@ def play_audio(url: str, title: str) -> None:
             with open(PLAYBACK_STATE_FILE, 'r') as f:
                 playback_data = json.load(f)
                 playback_position = playback_data.get(title, 0)
-
+        if playback_position > 0:
+            print(f"[Assistant]: Resume from last position at {playback_position} seconds? (y/n)")
+            resume_choice = input(">> ").strip().lower()
+            if resume_choice != 'y':
+                playback_position = 0
+                
         while True:
             print(f"Playing '{title}' from {playback_position} seconds...")
             start_time = time.time()
@@ -122,24 +103,33 @@ def play_audio(url: str, title: str) -> None:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            speak("Say stop when you want to pause the book.")
-            while True:
-                response = recognize_speech()
-                if response and "stop" in response.lower():
-                    process.terminate()
-                    process.wait()
-                    break
 
+            print("[Assistant]: Press 'p' to pause, or 's' to stop.")
+            choice = input(">> ").strip().lower()
+            process.terminate()
+            process.wait()
             elapsed = int(time.time() - start_time)
             playback_position += elapsed
 
-            speak("Would you like to continue listening?")
-            cont = recognize_speech()
-            if not cont or "no" in cont.lower():
+            if choice == 's':
                 playback_data[title] = playback_position
                 with open(PLAYBACK_STATE_FILE, 'w') as f:
                     json.dump(playback_data, f, indent=4)
+                print("Playback stopped.")
                 break
+
+            elif choice == 'p':
+                print("[Assistant]: Playback paused. Press 'u' to resume or 's' to stop.")
+                while True:
+                    sub_choice = input(">> ").strip().lower()
+                    if sub_choice == 'u':
+                        break
+                    elif sub_choice == 's':
+                        playback_data[title] = playback_position
+                        with open(PLAYBACK_STATE_FILE, 'w') as f:
+                            json.dump(playback_data, f, indent=4)
+                        print("Playback stopped.")
+                        return
 
     except Exception as e:
         speak("There was an error playing the audiobook.")
@@ -147,15 +137,15 @@ def play_audio(url: str, title: str) -> None:
 
 
 def select_and_play_audiobook() -> None:
-    """
-    Orchestrate the flow: fetch, list, select, and play an audiobook.
-    """
     audiobooks = fetch_audiobooks_from_api()
     listed = list_audiobooks(audiobooks)
     if not listed:
         return
 
     selected = select_audiobook(listed)
+    if selected == "EXIT_FLAG":
+        speak("Exiting audiobook selection.")
+        return
     if selected:
         title = selected["title"]
         speak(f"Playing {title} by {selected['author']}.")

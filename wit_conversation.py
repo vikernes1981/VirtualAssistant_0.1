@@ -25,7 +25,6 @@ def extract_intent_and_entities(user_input: str) -> tuple[str | None, dict]:
     # 1. Try Wit.ai
     intent = get_intent_from_wit(user_input)
     if intent:
-        print("[INTENT] via Wit:", intent)
         return intent, {}
 
     # 2. Keyword fallback

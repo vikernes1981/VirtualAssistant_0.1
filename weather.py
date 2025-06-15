@@ -50,7 +50,17 @@ def get_weather(city: str = DEFAULT_WEATHER_CITY) -> str:
         temp = forecast.get("main", {}).get("temp", "N/A")
         desc = forecast.get("weather", [{}])[0].get("description", "N/A")
 
-        return enhance_with_openai(city, time_str, temp, desc)
+        # Get sarcastic summary and display it clearly
+        summary = enhance_with_openai(city, time_str, temp, desc)
+
+        print("\n" + "=" * 50)
+        print("🌦️  Sarcastic Weather Forecast")
+        print("-" * 50)
+        print(summary)
+        print("=" * 50 + "\n")
+
+
+        return summary
 
     except requests.RequestException as e:
         print(f"Weather API error: {e}")
@@ -58,6 +68,7 @@ def get_weather(city: str = DEFAULT_WEATHER_CITY) -> str:
     except Exception as e:
         print(f"Unexpected weather error: {e}")
         return "An error occurred while processing the forecast."
+
 
 
 def enhance_with_openai(city: str, time: str, temp: float, description: str) -> str:

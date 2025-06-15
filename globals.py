@@ -15,8 +15,20 @@ recognizer = sr.Recognizer()
 number_map = {
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
     "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+    "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+    "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20,
+    "twenty one": 21, "twenty-two": 22, "twenty three": 23, "twenty four": 24, "twenty five": 25,
+    "twenty six": 26, "twenty seven": 27, "twenty eight": 28, "twenty nine": 29, "thirty": 30,
+    "thirty one": 31, "thirty two": 32, "thirty three": 33, "thirty four": 34, "thirty five": 35,
+    "thirty six": 36, "thirty seven": 37, "thirty eight": 38, "thirty nine": 39, "forty": 40,
     "1": 1, "2": 2, "3": 3, "4": 4, "5": 5,
-    "6": 6, "7": 7, "8": 8, "9": 9, "10": 10
+    "6": 6, "7": 7, "8": 8, "9": 9, "10": 10,
+    "11": 11, "12": 12, "13": 13, "14": 14, "15": 15,
+    "16": 16, "17": 17, "18": 18, "19": 19, "20": 20,
+    "21": 21, "22": 22, "23": 23, "24": 24, "25": 25,
+    "26": 26, "27": 27, "28": 28, "29": 29, "30": 30,
+    "31": 31, "32": 32, "33": 33, "34": 34, "35": 35,
+    "36": 36, "37": 37, "38": 38, "39": 39, "40": 40
 }
 
 #: Path to SQLite database
@@ -75,9 +87,16 @@ KEYWORD_INTENT_MAP = {
     "listen": "play_music",
 
     # --- Volume ---
-    "volume": "set_volume",
     "louder": "volume_up",
+    "increase volume": "volume_up",
+    "turn up": "volume_up",
+    "turn up volume": "volume_up",
+    "raise volume": "volume_up",
     "quieter": "volume_down",
+    "decrease volume": "volume_down",
+    "turn volume down": "volume_down",
+    "turn down the volume": "volume_down",
+    "lower volume": "volume_down",
     "mute": "set_volume",
 
     # --- Audiobooks ---
@@ -119,10 +138,10 @@ KEYWORD_INTENT_MAP = {
     "restart": "reboot",
 
     # --- System Updates ---
-    "update system": "update_system",
-    "full update": "update_system",
-    "system upgrade": "update_system",
-    "upgrade": "update_system",
+    "update system": "system_update",
+    "full update": "system_update",
+    "system upgrade": "system_update",
+    "upgrade": "system_update",
 
     # --- App Control ---
     "open sublime": "open_sublime",
